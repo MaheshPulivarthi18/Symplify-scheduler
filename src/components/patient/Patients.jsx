@@ -37,7 +37,6 @@ const PatientList = () => {
   const { toast } = useToast();
   const [progress, setProgress] = useState(13);
   const [therapists, setTherapists] = useState([])
-
   useEffect(() => {
     let interval;
     if (loading) {
@@ -59,7 +58,7 @@ const PatientList = () => {
     fetchPatients();
     fetchTherapists();
   }, [clinic_id]);
-
+ 
   useEffect(() => {
     const filtered = patients.filter(patient =>
       `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -136,11 +135,27 @@ const PatientList = () => {
       </div>
     );
   }
-
+  
   return (
     <Card className="w-full mx-auto mt-8 container p-4 shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Patient Management</CardTitle>
+        <br />
+        <div className="flex justify-around mt-4">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Total Patients</h2>
+            <p>{patients.length}</p>
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Active Patients</h2>
+            <p className="text-green-600">{patients.filter(p => p.is_patient_active).length}</p>
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Inactive Patients</h2>
+            <p className="text-red-600">{patients.length-patients.filter(p => p.is_patient_active).length}</p>
+          </div>
+        </div>
+        <br/>
         <div className="flex justify-between items-center mt-4">
           <Input
             type="text"
@@ -167,30 +182,26 @@ const PatientList = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className='text-center'>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost">Name <SortIcon field="last_name" /></Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleSort('last_name')}>Sort by Last Name</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSort('first_name')}>Sort by First Name</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      <Button variant="ghost" onClick={() => handleSort('first_name')}>Name 
+                        <SortIcon field="first_name" /></Button>
                 </TableHead>
                 <TableHead className='text-center'>
+                        status
+                 </TableHead>
+                <TableHead className='text-center'>
                   <Button variant="ghost" 
-                    // onClick={() => handleSort('email')}
+                     onClick={() => handleSort('email')}
                   >
                     Email 
-                    {/* <SortIcon field="email" /> */}
+                    { <SortIcon field="email" /> }
                   </Button>
                 </TableHead>
                 <TableHead className='text-center'>
                   <Button variant="ghost" 
-                    // onClick={() => handleSort('mobile')}
+                    onClick={() => handleSort('mobile')}
                     >
                     Mobile
-                    {/* <SortIcon field="email" /> */}
+                    <SortIcon field="email" />
                   </Button>
                 </TableHead>
                 <TableHead>
@@ -213,6 +224,17 @@ const PatientList = () => {
                       {patient.first_name} {patient.last_name}
                     </div>
                   </TableCell>
+                  <TableCell>
+                       {patient.is_patient_active ? (
+  <div className="inline-block px-2 py-1 text-green-800 bg-green-300 rounded-full border border-green-600">
+    Active
+  </div>
+) : (
+  <div className="inline-block px-2 py-1 text-sm text-red-600 bg-red-100 rounded-full border border-red-600">
+    NotActive
+  </div>
+)}
+                   </TableCell>
                   <TableCell>{patient.email}</TableCell>
                   <TableCell>{patient.mobile}</TableCell>
                   <TableCell>{getTherapistName(patient.therapist_primary)}</TableCell>
