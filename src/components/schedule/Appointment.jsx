@@ -21,6 +21,7 @@ const AppointmentPopup = ({
   onCancel,
   onDelete,
   onMarkVisit,
+  onRevoke,
   sellables,
   onCopyRecurringAppointments,
   workingHours,
@@ -58,6 +59,8 @@ const AppointmentPopup = ({
     sellable: event.service || '',
   });
   const [editDetails, setEditDetails] = useState(false);
+  const [isRevokeOpen, setIsRevokeOpen] = useState(false);
+  const [reason, setReason] = useState('')
 
   useEffect(() => {
     setIsSheetOpen(true);
@@ -179,6 +182,11 @@ const AppointmentPopup = ({
     handleClose();
   };
 
+  const handleRevoke = () => {
+    onRevoke(event.id, reason)
+    setIsRevokeOpen(false)
+    handleClose();
+  }
   return (
     <>
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -228,7 +236,12 @@ const AppointmentPopup = ({
               </>
             )}
             {isEventAttended && (
-              <div className="text-green-600 font-bold mb-2">Visit Completed</div>
+              <>
+                <div className="text-green-600 font-bold mb-2">Visit Completed</div>
+                <Button className="w-full" onClick={() => setIsRevokeOpen(true)}>
+                  Revoke Visit
+                </Button>
+              </>
             )}
             <Button
               className="w-full mb-2"
@@ -411,6 +424,28 @@ const AppointmentPopup = ({
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isRevokeOpen} onOpenChange={setIsRevokeOpen}>
+        <DialogContent className="max-w-2xl w-full max-h-[100vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Revoke Visit</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <Input
+                type="text"
+                placeholder='Reason for revoke'
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="pl-8"
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            <Button onClick={handleRevoke} className="w-full">
+              Revoke Visit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Copy Recurring Appointments Dialog */}
       <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
         <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">

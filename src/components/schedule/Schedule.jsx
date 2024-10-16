@@ -107,7 +107,8 @@ export default function Schedule() {
   const [dateRange, setDateRange] = useState('today');
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
-
+  const [bookedVisits, setBookedVisits] = useState([])
+  const [visits, setVisits] = useState([])
 
   const filteredTherapists = therapists.filter(therapist => 
     `${therapist.first_name} ${therapist.last_name}`.toLowerCase().includes(doctorSearch.toLowerCase())
@@ -652,21 +653,32 @@ export default function Schedule() {
       const newVisit = await response.json();
       
       // Update the local state to mark the event as attended
-      setEvents(prevEvents => prevEvents.map(event => 
-        event.id === bookingId 
-          ? { ...event, attended: true }
-          : event
-      ));
-      
-      toast({
-        title: "Success",
-        description: "Visit marked successfully.",
-        variant: "default",
-      });
-
-      // Optionally, you might want to refresh the bookings or visits data
-      await fetchBookings();
-      await fetchVisits();
+      const fetchAllEvents = async () => {
+        setLoading(true);
+        try {
+          const [bookings, visitsData] = await Promise.all([fetchBookings(), fetchVisits()]);
+          const { formattedVisits, attendedBookingIds } = visitsData;
+  
+          const updatedBookings = bookings.map(booking => {
+            if (attendedBookingIds.has(booking.id)) {
+              return { ...booking, attended: true };
+            } else {
+              return booking;
+            }
+          });
+  
+          let allEvents = [...updatedBookings, ...formattedVisits];
+          allEvents = allEvents.filter(event => event.status_patient !== 'R' && event.status_employee !== 'R');
+          setEvents(allEvents);
+          updateAppointmentCounts(allEvents);
+        } catch (error) {
+          console.error('Error fetching events:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      await fetchAllEvents();
     } catch (error) {
       console.error('Error marking visit:', error);
       toast({
@@ -676,6 +688,71 @@ export default function Schedule() {
       });
     }
   };
+
+  const handleRevoke = async (bookingId, reason) => {
+    try {
+      const bookedVisitEvent = bookedVisits.find(event => event.booking === bookingId);
+      // console.log(bookedVisitEvent, bookingId, bookedVisits)
+      const nonBookedVisit = visits.find(visit => `visit-${visit.id}` === bookingId);
+      if (!bookedVisitEvent && !nonBookedVisit) {
+        throw new Error('Visit not found');
+      }
+      const visitEvent = bookedVisitEvent || nonBookedVisit;
+      const revokeData = { reason: reason };
+  
+      const response = await authenticatedFetch(
+        `${import.meta.env.VITE_BASE_URL}/api/emp/clinic/${clinic_id}/visit/${visitEvent.id}/cancel/`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(revokeData),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to Revoke visit');
+      }
+      // Refresh events to include the updated (canceled) visit
+      const fetchAllEvents = async () => {
+        setLoading(true);
+        try {
+          const [bookings, visitsData] = await Promise.all([fetchBookings(), fetchVisits()]);
+          const { formattedVisits, attendedBookingIds } = visitsData;
+  
+          const updatedBookings = bookings.map(booking => {
+            if (attendedBookingIds.has(booking.id)) {
+              return { ...booking, attended: true };
+            } else {
+              return booking;
+            }
+          });
+  
+          let allEvents = [...updatedBookings, ...formattedVisits];
+          allEvents = allEvents.filter(event => event.status_patient !== 'R' && event.status_employee !== 'R');
+          setEvents(allEvents);
+          updateAppointmentCounts(allEvents);
+        } catch (error) {
+          console.error('Error fetching events:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      await fetchAllEvents();
+      toast({
+        title: "Success",
+        description: "Visit revoked successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error revoking visit:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to revoke visit. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
 
   const addVisit = async () => {
     try {
@@ -1048,11 +1125,13 @@ export default function Schedule() {
         `${import.meta.env.VITE_BASE_URL}/api/emp/clinic/${clinic_id}/visit/?date_from=${dateFrom}&date_to=${dateTo}`
       );
       const data = await response.json();
-  
+      setVisits(data)
+
       // Create a set to track bookings that have been attended
       const attendedBookingIds = new Set();
 
       const formattedVisits = []
+      const visitsBooked =[]
   
       // Process visits
       data.forEach(visit => {
@@ -1079,7 +1158,9 @@ export default function Schedule() {
           });
         } else {
           // Scheduled visit - mark the booking as attended
+          visitsBooked.push(visit)
           attendedBookingIds.add(visit.booking);
+          setBookedVisits(visitsBooked)
         }
       });
   
@@ -1556,6 +1637,7 @@ export default function Schedule() {
           onCancel={handleCancel}
           onDelete={handleDelete}
           onMarkVisit={handleMarkVisit}
+          onRevoke={handleRevoke}
           sellables={sellables}  // Pass sellables to AppointmentPopup
           onCopyRecurringAppointments={onCopyRecurringAppointments}
           workingHours={workingHours}
