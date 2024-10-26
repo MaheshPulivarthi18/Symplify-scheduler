@@ -483,10 +483,10 @@ const PatientProfile = () => {
       ...visit,
       doctor: employeeDetails[visit.employee] 
         ? `${employeeDetails[visit.employee].first_name} ${employeeDetails[visit.employee].last_name}`
-        : 'Loading...',
+        : 'Inactive Therapist',
       service: sellableDetails[visit.sellable]
         ? sellableDetails[visit.sellable].name
-        : 'Loading...',
+        : 'N/A',
     }));
   
     return (
@@ -1411,6 +1411,18 @@ const AppointmentsDataTable = ({ data }) => {
       }));
     } catch (error) {
       console.error("Failed to fetch employee details:", error);
+      setEmployeeDetails(prevDetails => ({
+        ...prevDetails,
+        [employeeId]: {
+          id: employeeId,
+          first_name: "Inactive",
+          last_name: "Therapist",
+          email: "N/A",
+          mobile: "N/A",
+          role: "Inactive Therapist", // setting role or status to indicate inactivity
+          user: null
+        }
+      }));
     }
   };
   
