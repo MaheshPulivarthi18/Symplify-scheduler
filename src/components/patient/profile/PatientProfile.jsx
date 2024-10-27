@@ -1772,6 +1772,7 @@ const exportLedgerTransactionsToExcel = async () => {
     navigate(`/clinic/${clinic_id}/patients/${patient_id}/update`, {
     state: { PatientData: patient,
       therapists:therapists,
+      therapist_primary: patient.therapist_primary,
     },
     });
   };
@@ -1891,8 +1892,8 @@ const exportLedgerTransactionsToExcel = async () => {
     <form onSubmit={handleSubmit}>
       <div className="flex flex-col items-center space-y-6">
         <Avatar className="w-24 h-24 shadow-md rounded-full">
-          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${formData.first_name} ${formData.last_name}`} />
-          <AvatarFallback>{formData.first_name.charAt(0)}{formData.last_name.charAt(0)}</AvatarFallback>
+          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${formData.first_name}${formData.last_name}`} />
+          <AvatarFallback>{formData.first_name.charAt(0)}{formData.last_name ? formData.last_name.charAt(0) : ""}</AvatarFallback>
         </Avatar>
 
         <CardTitle className="text-center text-lg font-medium text-gray-700">
